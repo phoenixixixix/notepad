@@ -39,21 +39,43 @@ end.parse!
 result = Post.find(options[:limit], options[:type], options[:id])
 
 if result.is_a?(Post)
+  # Получим строки для поста с помощью метода to_string и выведем их на экран
   puts "Запись #{result.class.name}, id = #{options[:id]}"
 
+  # Получим строки для поста с помощью метода to_string и выведем их на экран
   result.to_strings.each do |line|
     puts line
   end
-else # Покажем таблицу результатов
-  print "| id\t| @type\t| @created_at\t\t\t| @text\t\t\t| @url\t\t| @due_date \t"
+else
+  # Если результат — это не один пост, а сразу несколько, показываем таблицу
 
+  # Сначала — напечатаем шапку таблицы с названиями полей
+  print '|id                  '
+  print '| @type              '
+  print '| @created_at        '
+  print '| @text              '
+  print '| @url               '
+  print '| @due_date          '
+  print '|'
+
+  # Теперь для каждой строки из результатов выведем её в нужном формате
   result.each do |row|
-    puts
+    # Начинаем с пустой строки
+  puts
 
-    row.each do |element|
-      print "| #{element.to_s.delete('\\n\\r')[0..40]}\t"
-    end
+  # Для каждого элемента строки выводим его в нужном формате.
+  row.each do |element|
+    # С палкой перед ним и обрезая первые 17 символов для очень длинных строк.
+    # Также удаляем символы переноса.
+    element_text = "| #{element.to_s.delete("\n")[0..17]}"
+
+    # Если текст элемента короткий, добавляем нужное количество пробелов
+    element_text << ' ' * (21 - element_text.size)
+    print element_text
   end
-end
 
-puts
+    print '|'
+  end
+
+  puts
+end
