@@ -17,55 +17,96 @@ class Post
     @text = []
   end
 
-  def self.find(limit, type, id)
+  # 1. конкретная запись
+  def self.find_by_id(id)
     db = SQLite3::Database.open(SQLITE_DB_FILE)
+    db.results_as_hash = true
+    result = db.execute('SELECT * FROM posts WHERE rowid = ?', id)
+    db.close
 
-    # 1. конкретная запись
-    if !id.nil?
-      db.results_as_hash = true
+    # Если в результате запроса получили пустой массив, снова возвращаем nil
+    return nil if result.empty?
 
-      result = db.execute('SELECT * FROM posts WHERE rowid = ?', id)
+    # Если результат не пуст, едем дальше
+    result = result[0]
 
-      result = result[0] if result.is_a? Array
-
-      db.close
-
-      if result.empty?
-        puts "Такой id #{id} не найден"
-        return nil
-      else
-        post = create(result['type'])
-
-        post.load_data(result)
-
-        return post
-      end
-    else
-      # 2. Вернуть таблицу
-      db.results_as_hash = false
-
-      # формируем зарос в базу с нужним условями
-      query = 'SELECT rowid, * FROM posts '
-      query += 'WHERE type = :type ' unless type.nil?
-      query += 'ORDER by rowid DESC '
-
-      query += 'LIMIT :limit ' unless limit.nil?
-
-      statement = db.prepare(query)
-
-      statement.bind_param('type', type) unless type.nil?
-      statement.bind_param('limit', limit) unless limit.nil?
-
-      result = statement.execute!
-
-      statement.close
-      db.close
-
-      return result
-    end
+    post = create(result['type'])
+    post.load_data(result)
+    post
   end
 
 
+  # 2. Вернуть таблицу
+  def self.find_all(limit, type)
+    db = SQLite3::Database.open(SQLITE_DB_FILE)
+    db.results_as_hash = false
+
+    # формируем зарос в базу с нужним условями
+    query = 'SELECT rowid, * FROM posts '
+    query += 'WHERE type = :type ' unless type.nil?
+    query += 'ORDER by rowid DESC '
+    query += 'LIMIT :limit ' unless limit.nil?
+
+    statement = db.prepare(query)
+
+    statement.bind_param('type', type) unless type.nil?
+    statement.bind_param('limit', limit) unless limit.nil?
+
+    result = statement.execute!
+
+    statement.close
+    db.close
+
+    result
+  end
+
+  # def self.find(limit, type, id)
+  #   db = SQLite3::Database.open(SQLITE_DB_FILE)
+  #
+  #   # 1. конкретная запись
+  #   if !id.nil?
+  #     db.results_as_hash = true
+  #
+      # result = db.execute('SELECT * FROM posts WHERE rowid = ?', id)
+      #
+      # result = result[0] if result.is_a? Array
+      #
+      # db.close
+      #
+      # if result.empty?
+      #   puts "Такой id #{id} не найден"
+      #   return nil
+      # else
+      #   post = create(result['type'])
+      #
+      #   post.load_data(result)
+      #
+      #   return post
+  #     end
+  #   else
+  #     # 2. Вернуть таблицу
+  #     db.results_as_hash = false
+  #
+  #     # формируем зарос в базу с нужним условями
+  #     query = 'SELECT rowid, * FROM posts '
+  #     query += 'WHERE type = :type ' unless type.nil?
+  #     query += 'ORDER by rowid DESC '
+  #
+  #     query += 'LIMIT :limit ' unless limit.nil?
+  #
+  #     statement = db.prepare(query)
+  #
+  #     statement.bind_param('type', type) unless type.nil?
+  #     statement.bind_param('limit', limit) unless limit.nil?
+  #
+  #     result = statement.execute!
+  #
+  #     statement.close
+  #     db.close
+  #
+  #     return result
+  #   end
+  # end
 
   def read_from_console; end
 
