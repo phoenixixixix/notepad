@@ -19,9 +19,18 @@ class Post
 
   # 1. конкретная запись
   def self.find_by_id(id)
+    return if id.nil?
+
     db = SQLite3::Database.open(SQLITE_DB_FILE)
     db.results_as_hash = true
-    result = db.execute('SELECT * FROM posts WHERE rowid = ?', id)
+
+    begin
+      result = db.execute('SELECT * FROM posts WHERE rowid = ?', id)
+    rescue SQLite3::SQLException => e
+      puts "Не удалось выполнить запрос в базе #{SQLITE_DB_FILE}"
+      abort e.message
+    end
+
     db.close
 
     # Если в результате запроса получили пустой массив, снова возвращаем nil
@@ -35,7 +44,6 @@ class Post
     post
   end
 
-
   # 2. Вернуть таблицу
   def self.find_all(limit, type)
     db = SQLite3::Database.open(SQLITE_DB_FILE)
@@ -47,66 +55,28 @@ class Post
     query += 'ORDER by rowid DESC '
     query += 'LIMIT :limit ' unless limit.nil?
 
-    statement = db.prepare(query)
+    begin
+      statement = db.prepare(query)
+    rescue SQLite3::SQLException => e
+      puts "Не удалось выполнить запрос в базе #{SQLITE_DB_FILE}"
+      abort e.message
+    end
 
     statement.bind_param('type', type) unless type.nil?
     statement.bind_param('limit', limit) unless limit.nil?
 
-    result = statement.execute!
+    begin
+      result = statement.execute!
+    rescue SQLite3::SQLException => e
+      puts "Не удалось выполнить запрос в базе #{SQLITE_DB_FILE}"
+      abort e.message
+    end
 
     statement.close
     db.close
 
     result
   end
-
-  # def self.find(limit, type, id)
-  #   db = SQLite3::Database.open(SQLITE_DB_FILE)
-  #
-  #   # 1. конкретная запись
-  #   if !id.nil?
-  #     db.results_as_hash = true
-  #
-      # result = db.execute('SELECT * FROM posts WHERE rowid = ?', id)
-      #
-      # result = result[0] if result.is_a? Array
-      #
-      # db.close
-      #
-      # if result.empty?
-      #   puts "Такой id #{id} не найден"
-      #   return nil
-      # else
-      #   post = create(result['type'])
-      #
-      #   post.load_data(result)
-      #
-      #   return post
-  #     end
-  #   else
-  #     # 2. Вернуть таблицу
-  #     db.results_as_hash = false
-  #
-  #     # формируем зарос в базу с нужним условями
-  #     query = 'SELECT rowid, * FROM posts '
-  #     query += 'WHERE type = :type ' unless type.nil?
-  #     query += 'ORDER by rowid DESC '
-  #
-  #     query += 'LIMIT :limit ' unless limit.nil?
-  #
-  #     statement = db.prepare(query)
-  #
-  #     statement.bind_param('type', type) unless type.nil?
-  #     statement.bind_param('limit', limit) unless limit.nil?
-  #
-  #     result = statement.execute!
-  #
-  #     statement.close
-  #     db.close
-  #
-  #     return result
-  #   end
-  # end
 
   def read_from_console; end
 
@@ -134,6 +104,7 @@ class Post
     db = SQLite3::Database.open(SQLITE_DB_FILE)
     db.results_as_hash = true
 
+    begin
     db.execute(
         'INSERT INTO posts (' +
           to_db_hash.keys.join(',') +
@@ -143,6 +114,10 @@ class Post
           ')',
         to_db_hash.values
       )
+    rescue SQLite3::SQLException => e
+      puts "Не удалось выполнить запрос в базе #{SQLITE_DB_FILE}"
+      abort e.message
+    end
 
     insert_row_id = db.last_insert_row_id
 
